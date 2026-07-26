@@ -6,7 +6,7 @@ This repository contains the complete, production-ready C++ firmware for the **R
 
 ## 🖼️ Circuit & Wiring Diagram
 
-![Raksha Band Circuit Diagram](Screenshot%202026-07-26%20142841.png)
+![Raksha Band Circuit Diagram](circuit_image.png)
 
 ---
 
