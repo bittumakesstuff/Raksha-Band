@@ -18,7 +18,7 @@
 // ==========================================
 // Set to 1 to enable Wokwi / Simulator compatibility mode & Serial test commands
 // Set to 0 for production real hardware deployment
-#define SIMULATION_MODE         1   
+#define SIMULATION_MODE         0  
 
 // ==========================================
 // 1. PIN DEFINITIONS (MATCHING CONNECTION SHEET)
