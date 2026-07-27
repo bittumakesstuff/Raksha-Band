@@ -6,7 +6,7 @@ This repository contains the C++ firmware for the **Raksha Band** wearable safet
 
 ## 🖼️ Circuit & Wiring Diagram
 
-![Raksha Band Circuit Diagram](Screenshot%202026-07-26%20142841.png)
+![Raksha Band Circuit Diagram](circuit_image.png)
 
 ---
 
@@ -63,17 +63,3 @@ This repository contains the C++ firmware for the **Raksha Band** wearable safet
 - **Kidnapping / Violent Struggle**: High G-force spikes (>2.5G) combined with high gyroscope angular velocity (>250 deg/sec) trigger an emergency alarm.
 
 ---
-
-## 🚀 How to Build & Upload
-
-1. Open `Raksha_Band_ESP32S3.ino` in Arduino IDE or VS Code with PlatformIO.
-2. Select Board: **ESP32S3 Dev Module**.
-3. Upload to board and open Serial Monitor at **115200 baud**.
-4. Test interactive commands in Serial Monitor:
-   - `t`: Tamper strap trigger
-   - `b`: Manual SOS button
-   - `p`: Press BT button (GPIO 16)
-   - `r`: Reset BT pairing (GPIO 17)
-   - `s`: Scream + GPS SOS
-   - `m`: Struggle / Kidnap motion
-   - `c`: Disarm / Cancel alarm
