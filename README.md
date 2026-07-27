@@ -6,7 +6,7 @@ This repository contains the C++ firmware for the **Raksha Band** wearable safet
 
 ## 🖼️ Circuit & Wiring Diagram
 
-![Raksha Band Circuit Diagram](circuit_image.png)
+![Raksha Band Circuit Diagram](circuit.png)
 
 ---
 
