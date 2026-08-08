@@ -6,26 +6,20 @@
 #include <esp_sleep.h>
 #include "config.h"
 
-// Multi-stack BLE Header Auto-Detection using __has_include
+// Safe BLE Header Selection (Prevents broken third-party BLEServer.h library errors)
 #if ENABLE_BLE
   #if __has_include(<NimBLEDevice.h>)
     #include <NimBLEDevice.h>
-    #define USE_NIMBLE_LIB 1
-    #define HAVE_BLE_STACK 1
-  #elif __has_include("esp_gap_ble_api.h")
+    #define HAVE_NIMBLE_BLE 1
+  #elif __has_include("esp_gatts_api.h")
     #include "esp_bt.h"
     #include "esp_gap_ble_api.h"
     #include "esp_gatts_api.h"
     #if __has_include("esp_bt_main.h")
       #include "esp_bt_main.h"
     #endif
-    #define USE_IDF_BLE 1
-    #define HAVE_BLE_STACK 1
-  #else
-    #define HAVE_BLE_STACK 0
+    #define HAVE_IDF_GATT 1
   #endif
-#else
-  #define HAVE_BLE_STACK 0
 #endif
 
 // System State Machine
@@ -55,7 +49,7 @@ uint8_t g_bufIdx = 0;
 bool g_lis3dhFound = false;
 uint8_t g_lis3dhAddr = LIS3DH_ADDR_PRIMARY;
 
-#if HAVE_BLE_STACK && defined(USE_IDF_BLE)
+#if defined(HAVE_IDF_GATT)
 static esp_ble_adv_params_t g_advParams = {
     .adv_int_min        = 0x20,
     .adv_int_max        = 0x40,
@@ -102,7 +96,7 @@ bool sendSMS(String number, String message);
 uint8_t readBatteryLevel();
 void enterDeepSleep();
 
-#if HAVE_BLE_STACK && defined(USE_IDF_BLE)
+#if defined(HAVE_IDF_GATT)
 static void gapEventHandler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
     switch (event) {
         case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:
@@ -118,7 +112,6 @@ static void gapEventHandler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t
 static void gattsEventHandler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param) {
     switch (event) {
         case ESP_GATTS_CONNECT_EVT: {
-            // Single Device Pairing Lock Check
             String storedMac = g_prefs.getString("paired_mac", "");
             char connMac[18];
             snprintf(connMac, sizeof(connMac), "%02X:%02X:%02X:%02X:%02X:%02X",
@@ -127,18 +120,15 @@ static void gattsEventHandler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if
                      param->connect.remote_bda[4], param->connect.remote_bda[5]);
 
             if (storedMac.length() == 0) {
-                // First phone connection -> Lock pairing to this MAC in NVS!
                 g_prefs.putString("paired_mac", String(connMac));
                 g_bleConnected = true;
-                Serial.print("First device connected! Pairing locked to MAC: ");
+                Serial.print("First device connected! Locked to MAC: ");
                 Serial.println(connMac);
             } else if (storedMac == String(connMac)) {
-                // Authorized paired device re-connecting
                 g_bleConnected = true;
                 Serial.println("Paired authorized phone connected!");
             } else {
-                // Reject unauthorized device connection attempt
-                Serial.print("UNAUTHORIZED pairing attempt rejected from MAC: ");
+                Serial.print("UNAUTHORIZED connection attempt rejected: ");
                 Serial.println(connMac);
                 esp_ble_gatts_close(gatts_if, param->connect.conn_id);
                 return;
@@ -201,13 +191,13 @@ void setup() {
     Serial.print("Emergency No. : ");
     Serial.println(g_emergencyPhone);
 
-    String pairedPhone = g_prefs.getString("paired_mac", "UNPAIRED");
+    String pairedStatus = g_prefs.getString("paired_mac", "UNPAIRED");
     Serial.print("Pairing Lock  : ");
-    Serial.println(pairedPhone);
+    Serial.println(pairedStatus);
 
     initLIS3DH();
 
-    // Check BT switch state on boot
+    // Check BT switch state on boot (GPIO 0)
     if (digitalRead(PIN_BT_SWITCH) == LOW) {
         startBLE();
     } else {
@@ -280,7 +270,6 @@ void checkInputs() {
     if (currentBtSwitchState == LOW) {
         if (btHoldStart == 0) btHoldStart = millis();
         else if (millis() - btHoldStart > BT_HOLD_RESET_MS) {
-            // Reset pairing lock!
             g_prefs.remove("paired_mac");
             Serial.println("PAIRING RESET! Device lock cleared. Ready for new phone.");
             digitalWrite(PIN_STATUS_LED, HIGH);
@@ -333,15 +322,15 @@ void checkInputs() {
 void startBLE() {
     if (g_bleActive) return;
 
-#if HAVE_BLE_STACK
-  #if defined(USE_NIMBLE_LIB)
+#if defined(HAVE_NIMBLE_BLE)
     NimBLEDevice::init(g_deviceSerial.c_str());
     NimBLEServer* pServer = NimBLEDevice::createServer();
     NimBLEService* pService = pServer->createService(BLE_SERVICE_UUID);
     pService->start();
     NimBLEAdvertising* pAdv = NimBLEDevice::getAdvertising();
     pAdv->start();
-  #elif defined(USE_IDF_BLE)
+    Serial.println("Bluetooth turned ON via NimBLE!");
+#elif defined(HAVE_IDF_GATT)
     if (!g_bleInitDone) {
         esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
         esp_bt_controller_init(&bt_cfg);
@@ -355,11 +344,12 @@ void startBLE() {
     } else {
         esp_ble_gap_start_advertising(&g_advParams);
     }
-  #endif
+    Serial.println("Bluetooth turned ON via Native ESP-IDF BLE!");
+#else
+    Serial.println("Bluetooth hardware mode initialized.");
 #endif
 
     g_bleActive = true;
-    Serial.println("Bluetooth turned ON successfully!");
 
     // Feedback pulse: 2 short vibrations + 2 LED flashes
     for (int i = 0; i < 2; i++) {
@@ -375,12 +365,10 @@ void startBLE() {
 void stopBLE() {
     if (!g_bleActive) return;
 
-#if HAVE_BLE_STACK
-  #if defined(USE_NIMBLE_LIB)
+#if defined(HAVE_NIMBLE_BLE)
     NimBLEDevice::deinit(true);
-  #elif defined(USE_IDF_BLE)
+#elif defined(HAVE_IDF_GATT)
     esp_ble_gap_stop_advertising();
-  #endif
 #endif
 
     g_bleActive = false;
