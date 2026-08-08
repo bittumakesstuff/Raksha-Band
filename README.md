@@ -107,7 +107,21 @@
 ```
 
 ---
-
+## Size of all devices
+    esp32 c3 super mini: 0.68 × 0.96 in
+    SIM7000E NB-IoT: 2.559055 × 1.181102 in
+    LIS3DSH: 0.832763 × 0.806436 in
+    lipo battery 3.7V: 0.899817 × 1.024792 in
+    Buzzer: 1.052888 × 1.052888 in
+    COIN VIBRATION MOTOR: 1.00 × 0.546351 in
+    TP4056: 1.431002 × 0.916218 in
+    Reed Switch (instance 1): 0.63 × 0.11 in
+    LED 2.4W: 1.00 × 2.683099 in
+    2N2222: 0.25 × 0.5 in
+    Resistor (1800Ω): 0.253333 × 0.053333 in
+    Resistor (10kΩ): 0.253333 × 0.053333 in
+    Diode 1N4148W: 0.414986 × 0.1 in
+    Reed Switch (instance 2): 0.63 × 0.11 in
 ## 📱 Bluetooth Low Energy (BLE) App GATT API
 
 - **Service UUID**: `4fafc201-1fb5-459e-8fcc-c5c9c331914b`
