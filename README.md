@@ -119,19 +119,6 @@
 
 ---
 
-## 🚀 How to Build & Flash
-
-1. Clone or download this repository:
-   ```bash
-   git clone https://github.com/your-username/raksha-band.git
-   ```
-2. Open [Raksha_Band.ino](file:///c:/Users/HIRANMOY%20ROY/Desktop/Raksha%20band/Raksha_Band.ino) in **Arduino IDE** (or VS Code with PlatformIO).
-3. Select Board: **ESP32C3 Dev Module**.
-4. Select target COM Port and click **Upload**.
-5. Open Serial Monitor at **115200 baud** to view real-time system logs.
-
----
-
 ## 📄 License
 
 This project is open-source software licensed under the **MIT License**.
