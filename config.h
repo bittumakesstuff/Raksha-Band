@@ -14,7 +14,7 @@
 #define DEBUG_BAUD            115200
 
 // Feature Toggles
-#define ENABLE_BLE            1  // Bluetooth App & Switch Control Enabled
+#define ENABLE_BLE            1  // Enable BLE with smart header fallback
 
 // I2C Pins for LIS3DH Accelerometer
 #define PIN_SDA               8
