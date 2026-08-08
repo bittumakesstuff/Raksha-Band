@@ -11,7 +11,7 @@
 
 ## 🖼️ Final Circuit Diagram & Connection Guide
 
-![Raksha Band Final Circuit Layout](Screenshot%202026-07-26%20123319.png)
+![Raksha Band Final Circuit Layout](circuit.png)
 
 *Figure 1: Complete hardware circuit schematic including ESP32-C3 SuperMini, SIM7000E cellular/GNSS module, LIS3DH accelerometer, Reed switch trigger, physical Bluetooth ON/OFF switch, NPN transistor vibration motor driver, status LED, and TP4056 + DW01A battery protection circuit.*
 
