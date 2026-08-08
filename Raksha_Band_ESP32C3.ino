@@ -1,7 +1,4 @@
-/*
- * Raksha Band - Main ESP32-C3 Firmware
- * Peripherals: ESP32-C3 + SIM7000E + LIS3DH + Reed Switch + Vibro Motor + BT Switch
- */
+//Raksha Band Code
 
 #include <Arduino.h>
 #include <Wire.h>
