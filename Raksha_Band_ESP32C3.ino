@@ -1,4 +1,3 @@
-//Raksha Band Code
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -118,13 +117,37 @@ static void gapEventHandler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t
 
 static void gattsEventHandler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param) {
     switch (event) {
-        case ESP_GATTS_CONNECT_EVT:
-            g_bleConnected = true;
-            Serial.println("App Connected via Native BLE!");
+        case ESP_GATTS_CONNECT_EVT: {
+            // Single Device Pairing Lock Check
+            String storedMac = g_prefs.getString("paired_mac", "");
+            char connMac[18];
+            snprintf(connMac, sizeof(connMac), "%02X:%02X:%02X:%02X:%02X:%02X",
+                     param->connect.remote_bda[0], param->connect.remote_bda[1],
+                     param->connect.remote_bda[2], param->connect.remote_bda[3],
+                     param->connect.remote_bda[4], param->connect.remote_bda[5]);
+
+            if (storedMac.length() == 0) {
+                // First phone connection -> Lock pairing to this MAC in NVS!
+                g_prefs.putString("paired_mac", String(connMac));
+                g_bleConnected = true;
+                Serial.print("First device connected! Pairing locked to MAC: ");
+                Serial.println(connMac);
+            } else if (storedMac == String(connMac)) {
+                // Authorized paired device re-connecting
+                g_bleConnected = true;
+                Serial.println("Paired authorized phone connected!");
+            } else {
+                // Reject unauthorized device connection attempt
+                Serial.print("UNAUTHORIZED pairing attempt rejected from MAC: ");
+                Serial.println(connMac);
+                esp_ble_gatts_close(gatts_if, param->connect.conn_id);
+                return;
+            }
             break;
+        }
         case ESP_GATTS_DISCONNECT_EVT:
             g_bleConnected = false;
-            Serial.println("App Disconnected from Native BLE.");
+            Serial.println("App Disconnected from BLE.");
             if (g_bleActive) {
                 esp_ble_gap_start_advertising(&g_advParams);
             }
@@ -177,6 +200,10 @@ void setup() {
     Serial.println(g_deviceSerial);
     Serial.print("Emergency No. : ");
     Serial.println(g_emergencyPhone);
+
+    String pairedPhone = g_prefs.getString("paired_mac", "UNPAIRED");
+    Serial.print("Pairing Lock  : ");
+    Serial.println(pairedPhone);
 
     initLIS3DH();
 
@@ -244,10 +271,26 @@ void initHardware() {
 }
 
 void checkInputs() {
-    // Bluetooth Switch (GPIO 0) Check
+    // 1. Bluetooth Switch (GPIO 0) Check & 3s Hold Reset Pairing Lock
     static int lastBtSwitchState = -1;
     static unsigned long lastBtToggleTime = 0;
+    static unsigned long btHoldStart = 0;
     int currentBtSwitchState = digitalRead(PIN_BT_SWITCH);
+
+    if (currentBtSwitchState == LOW) {
+        if (btHoldStart == 0) btHoldStart = millis();
+        else if (millis() - btHoldStart > BT_HOLD_RESET_MS) {
+            // Reset pairing lock!
+            g_prefs.remove("paired_mac");
+            Serial.println("PAIRING RESET! Device lock cleared. Ready for new phone.");
+            digitalWrite(PIN_STATUS_LED, HIGH);
+            delay(1000);
+            digitalWrite(PIN_STATUS_LED, LOW);
+            btHoldStart = 0;
+        }
+    } else {
+        btHoldStart = 0;
+    }
 
     if (currentBtSwitchState != lastBtSwitchState && (millis() - lastBtToggleTime > BT_DEBOUNCE_MS)) {
         lastBtToggleTime = millis();
@@ -264,7 +307,7 @@ void checkInputs() {
         }
     }
 
-    // Reed Switch (GPIO 2) Trigger Check
+    // 2. Reed Switch (GPIO 2) Trigger Check
     static unsigned long lastReedTrigger = 0;
     int reedState = digitalRead(PIN_REED_SW);
 
